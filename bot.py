@@ -3,7 +3,7 @@
 import discord
 from discord.ext import commands
 import random
-from lekcja_3.settings import settings
+from settings import settings
 description = '''An example bot to showcase the discord.ext.commands extension
 module.
 
