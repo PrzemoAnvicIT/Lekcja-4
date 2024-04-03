@@ -4,6 +4,9 @@ import discord
 from discord.ext import commands
 import random
 from settings import settings
+from bot_logic import *
+import asyncio
+
 description = '''An example bot to showcase the discord.ext.commands extension
 module.
 
@@ -21,6 +24,11 @@ async def on_ready():
     print(f'Logged in as {bot.user} (ID: {bot.user.id})')
     print('------')
 
+
+@bot.command()
+async def haslo(ctx, dlugosc_hasla=8):
+    losowe_haslo = gen_pass(dlugosc_hasla)
+    await ctx.send(f'Twoje losowe hasło to:\n{losowe_haslo}')
 
 @bot.command()
 async def add(ctx, left: int, right: int):
@@ -60,20 +68,38 @@ async def joined(ctx, member: discord.Member):
     await ctx.send(f'{member.name} joined {discord.utils.format_dt(member.joined_at)}')
 
 
-@bot.group()
-async def cool(ctx):
-    """Says if a user is cool.
+@bot.command()
+async def game(ctx):
+    number = random.randint(0, 100)   # Dla celów testowych ustaw wartość; możesz chcieć użyć random.randint(0, 100) dla rzeczywistych gier.
+    await ctx.send('Zgadnij numer od 0 do 100. Masz 5 prób!')
 
-    In reality this just checks if a subcommand is being invoked.
-    """
-    if ctx.invoked_subcommand is None:
-        await ctx.send(f'No, {ctx.subcommand_passed} is not cool')
+    def check(message):
+        # Sprawdź, czy wiadomość pochodzi od użytkownika, który wywołał komendę i czy jest to liczba całkowita.
+        return message.author == ctx.author and message.content.isdigit()
 
+    for i in range(5):
+        if i == 4:  # Dostosowane sprawdzanie dla wiadomości z ostatnią szansą.
+            await ctx.send('Ostatnia szansa!')
+        await ctx.send('Zgadnij numer...')
+        
+        try:
+            response = await bot.wait_for('message', check=check, timeout=30.0)  # Dodaj limit czasu według potrzeb.
+        except asyncio.TimeoutError:
+            await ctx.send('Przekroczono limit czasu!')
+            return
 
-@cool.command(name='bot')
-async def _bot(ctx):
-    """Is the bot cool?"""
-    await ctx.send('Yes, the bot is cool.')
+        guess = int(response.content)
+        if guess > number:
+            await ctx.send('mniej')
+        elif guess < number:
+            await ctx.send('więcej')
+        else:
+            await ctx.send(f'Tak! To {number}! Brawo!')
+            return
+
+    # Jeśli pętla zakończy się bez poprawnej odpowiedzi:
+    await ctx.send(f'Niestety, nie udało się. Prawidłowy numer to: {number}.')
+
 
 
 bot.run(settings['TOKEN'])
